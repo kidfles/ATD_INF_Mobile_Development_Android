@@ -24,6 +24,13 @@ sealed class Screen(val route: String) {
     }
     data object AddWorkout     : Screen("add_workout")
     data object Settings       : Screen("settings")
+    data object Home           : Screen("home")
+    data object PerformWorkout : Screen("perform_workout/{workoutId}") {
+        fun createRoute(workoutId: Long) = "perform_workout/$workoutId"
+    }
+    data object EditWorkout    : Screen("edit_workout/{workoutId}") {
+        fun createRoute(workoutId: Long) = "edit_workout/$workoutId"
+    }
 }
 
 @Composable
@@ -41,7 +48,7 @@ fun AppNavGraph(
         composable(Screen.Splash.route) {
             SplashScreen(
                 onNavigateNext = {
-                    val dest = if (prefs.isLoggedIn) Screen.Exercises.route else Screen.Login.route
+                    val dest = if (prefs.isLoggedIn) Screen.Home.route else Screen.Login.route
                     navController.navigate(dest) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
@@ -53,10 +60,19 @@ fun AppNavGraph(
             LoginScreen(
                 prefs = prefs,
                 onLoginSuccess = {
-                    navController.navigate(Screen.Exercises.route) {
+                    navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
+            )
+        }
+
+        composable(Screen.Home.route) {
+            HomeScreen(
+                prefs = prefs,
+                onNavigateToWorkouts = { navController.navigate(Screen.Workouts.route) },
+                onNavigateToExercises = { navController.navigate(Screen.Exercises.route) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
             )
         }
 
@@ -66,7 +82,8 @@ fun AppNavGraph(
                     navController.navigate(Screen.ExerciseDetail.createRoute(exerciseId))
                 },
                 onNavigateToWorkouts = { navController.navigate(Screen.Workouts.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -88,7 +105,8 @@ fun AppNavGraph(
                 },
                 onAddWorkout = { navController.navigate(Screen.AddWorkout.route) },
                 onNavigateToExercises = { navController.navigate(Screen.Exercises.route) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings.route) }
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onBack = { navController.popBackStack() }
             )
         }
 
@@ -99,7 +117,9 @@ fun AppNavGraph(
             val workoutId = backStackEntry.arguments?.getLong("workoutId") ?: return@composable
             WorkoutDetailScreen(
                 workoutId = workoutId,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onStartWorkout = { id -> navController.navigate(Screen.PerformWorkout.createRoute(id)) },
+                onEditWorkout = { id -> navController.navigate(Screen.EditWorkout.createRoute(id)) }
             )
         }
 
@@ -122,6 +142,29 @@ fun AppNavGraph(
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.PerformWorkout.route,
+            arguments = listOf(navArgument("workoutId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val workoutId = backStackEntry.arguments?.getLong("workoutId") ?: return@composable
+            PerformWorkoutScreen(
+                workoutId = workoutId,
+                onFinished = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.EditWorkout.route,
+            arguments = listOf(navArgument("workoutId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val workoutId = backStackEntry.arguments?.getLong("workoutId") ?: return@composable
+            EditWorkoutScreen(
+                workoutId = workoutId,
+                onSaved = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
             )
         }

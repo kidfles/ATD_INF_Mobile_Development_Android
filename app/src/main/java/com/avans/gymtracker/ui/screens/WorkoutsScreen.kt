@@ -29,6 +29,7 @@ fun WorkoutsScreen(
     onAddWorkout: () -> Unit,
     onNavigateToExercises: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onBack: () -> Unit = {}, // Navigeer terug naar het beginscherm
     workoutViewModel: WorkoutViewModel = viewModel()
 ) {
     val workouts by workoutViewModel.workouts.collectAsStateWithLifecycle()
@@ -38,6 +39,12 @@ fun WorkoutsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Mijn Workouts") },
+                navigationIcon = {
+                    // Terug-pijl naar het beginscherm
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, "Terug")
+                    }
+                },
                 actions = {
                     IconButton(onClick = onNavigateToExercises) {
                         Icon(Icons.Default.Search, "Oefeningen")

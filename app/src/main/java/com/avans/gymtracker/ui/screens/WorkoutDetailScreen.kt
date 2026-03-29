@@ -31,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.avans.gymtracker.GymTrackerApplication
 import com.avans.gymtracker.data.model.Workout
 import com.avans.gymtracker.data.model.WorkoutExercise
+import com.avans.gymtracker.viewmodel.ExerciseViewModel
 import com.avans.gymtracker.viewmodel.WorkoutViewModel
 import java.io.File
 
@@ -49,7 +50,10 @@ import java.io.File
 fun WorkoutDetailScreen(
     workoutId: Long,
     onBack: () -> Unit,
-    workoutViewModel: WorkoutViewModel = viewModel()
+    onStartWorkout: (Long) -> Unit = {},
+    onEditWorkout: (Long) -> Unit = {},
+    workoutViewModel: WorkoutViewModel = viewModel(),
+    exerciseViewModel: ExerciseViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val workout by workoutViewModel.currentWorkout.collectAsStateWithLifecycle()
@@ -61,6 +65,7 @@ fun WorkoutDetailScreen(
     var editedDescription by remember { mutableStateOf("") }
     var showCompletionDialog by remember { mutableStateOf(false) }
     var showCameraPermissionDialog by remember { mutableStateOf(false) }
+    var showExercisePicker by remember { mutableStateOf(false) }
 
     // Foto URI voor camera intent
     var photoUri by remember { mutableStateOf<Uri?>(null) }
@@ -126,6 +131,23 @@ fun WorkoutDetailScreen(
         }
     }
 
+    // Toon de oefening-kiezer als overlay wanneer de gebruiker op "Toevoegen" drukt
+    if (showExercisePicker) {
+        val tempSelected = remember { mutableStateListOf<com.avans.gymtracker.data.model.Exercise>() }
+        ExercisePickerSheet(
+            exerciseViewModel = exerciseViewModel,
+            selectedExercises = tempSelected,
+            onDismiss = {
+                // Sla geselecteerde oefeningen op bij het sluiten van de picker
+                if (tempSelected.isNotEmpty()) {
+                    workoutViewModel.addExercisesToWorkout(workoutId, tempSelected.toList())
+                }
+                showExercisePicker = false
+            }
+        )
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -157,7 +179,7 @@ fun WorkoutDetailScreen(
                             isEditingName = false
                         }) { Icon(Icons.Default.Check, "Opslaan") }
                     } else {
-                        IconButton(onClick = { isEditingName = true }) {
+                        IconButton(onClick = { onEditWorkout(workoutId) }) {
                             Icon(Icons.Default.Edit, "Bewerken")
                         }
                     }
@@ -224,7 +246,10 @@ fun WorkoutDetailScreen(
             ) {
                 // Workout starten / voltooien
                 Button(
-                    onClick = { showCompletionDialog = true },
+                    onClick = {
+                        if (w.isCompleted) showCompletionDialog = true
+                        else onStartWorkout(workoutId)
+                    },
                     modifier = Modifier.weight(1f),
                     colors = if (w.isCompleted)
                         ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
@@ -277,7 +302,19 @@ fun WorkoutDetailScreen(
             // ── Oefeningen ────────────────────────────────────────────────────
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Oefeningen", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Oefeningen", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        // Knop om een nieuwe oefening aan de workout toe te voegen
+                        TextButton(onClick = { showExercisePicker = true }) {
+                            Icon(Icons.Default.Add, null)
+                            Spacer(Modifier.width(4.dp))
+                            Text("Toevoegen")
+                        }
+                    }
                     HorizontalDivider()
 
                     if (exercises.isEmpty()) {
@@ -478,7 +515,7 @@ private fun createImageFile(context: Context): File {
 }
 
 /** Stuurt een lokale notificatie na voltooiing van de workout. */
-private fun sendCompletionNotification(context: Context, workoutName: String) {
+internal fun sendCompletionNotification(context: Context, workoutName: String) {
     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val notification = NotificationCompat.Builder(context, GymTrackerApplication.CHANNEL_ID)
         .setSmallIcon(android.R.drawable.ic_dialog_info)

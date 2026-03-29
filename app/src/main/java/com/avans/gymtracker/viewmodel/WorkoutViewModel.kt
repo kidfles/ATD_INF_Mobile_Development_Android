@@ -144,6 +144,21 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /**
+     * Voegt oefeningen toe aan een bestaande workout.
+     * De volgorde wordt bepaald op basis van het huidige aantal oefeningen.
+     */
+    fun addExercisesToWorkout(workoutId: Long, exercises: List<Exercise>) {
+        viewModelScope.launch {
+            // Bepaal de startindex op basis van bestaande oefeningen
+            val currentCount = _currentExercises.value.size
+            val workoutExercises = exercises.mapIndexed { index, exercise ->
+                WorkoutExercise.fromExercise(exercise, workoutId, currentCount + index)
+            }
+            repository.insertExercises(workoutExercises)
+        }
+    }
+
     // ── Hulp ──────────────────────────────────────────────────────────────────
 
     fun resetSaveSuccess() { _saveSuccess.value = false }

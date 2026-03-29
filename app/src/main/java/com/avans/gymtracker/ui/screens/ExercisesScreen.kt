@@ -40,6 +40,7 @@ fun ExercisesScreen(
     onExerciseClick: (String) -> Unit,
     onNavigateToWorkouts: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onBack: () -> Unit = {}, // Navigeer terug naar het beginscherm
     exerciseViewModel: ExerciseViewModel = viewModel(),
     workoutViewModel: WorkoutViewModel = viewModel()
 ) {
@@ -75,6 +76,12 @@ fun ExercisesScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Oefeningen") },
+                navigationIcon = {
+                    // Terug-pijl naar het beginscherm
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, "Terug")
+                    }
+                },
                 actions = {
                     IconButton(onClick = onNavigateToWorkouts) {
                         Icon(Icons.Default.FitnessCenter, "Workouts")
@@ -224,16 +231,12 @@ fun ExercisesScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("\"${exercise.name.replaceFirstChar { it.uppercase() }}\" toevoegen aan:")
                         Spacer(Modifier.height(8.dp))
+                        // Toon alle bestaande workouts als keuze
                         workouts.forEach { workout ->
                             OutlinedButton(
                                 onClick = {
-                                    workoutViewModel.createWorkout(
-                                        name = workout.name,
-                                        description = workout.description,
-                                        exercises = listOf(exercise)
-                                    ) { _ -> }
-                                    // Eigenlijk wil je de exercise toevoegen aan bestaand workout
-                                    // Dit doet de WorkoutViewModel via addExerciseToWorkout
+                                    // Voeg de oefening toe aan de gekozen bestaande workout
+                                    workoutViewModel.addExercisesToWorkout(workout.id, listOf(exercise))
                                     showAddToWorkoutDialog = null
                                 },
                                 modifier = Modifier.fillMaxWidth()

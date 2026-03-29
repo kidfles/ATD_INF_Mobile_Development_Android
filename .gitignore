@@ -1,16 +1,22 @@
-# Gradle
+# Gradle buildmappen
 .gradle/
 build/
 app/build/
 
-# Local config
+# Lokale configuratie (niet in versiebeheer)
 local.properties
 
-# IDE
+# IDE-bestanden
 .idea/
 *.iml
 
-# Android
+# Android build-uitvoer
 *.apk
 *.aab
 *.keystore
+
+# Java heap dumps (geheugenanalyse)
+*.hprof
+
+# Claude Code lokale configuratie
+.claude/
