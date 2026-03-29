@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">GymTracker</string>
+    <string name="exercises">Oefeningen</string>
+    <string name="workouts">Workouts</string>
+    <string name="settings">Instellingen</string>
+    <string name="loading">Laden…</string>
+    <string name="error_network">Netwerkfout. Controleer je verbinding.</string>
+    <string name="no_exercises">Geen oefeningen gevonden</string>
+    <string name="no_workouts">Nog geen workouts aangemaakt</string>
+    <string name="camera_permission_rationale">Camera toegang nodig om een foto van je workout toe te voegen.</string>
+</resources>
