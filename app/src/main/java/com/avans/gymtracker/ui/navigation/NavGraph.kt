@@ -81,7 +81,11 @@ fun AppNavGraph(
                 onExerciseClick = { exerciseId ->
                     navController.navigate(Screen.ExerciseDetail.createRoute(exerciseId))
                 },
-                onNavigateToWorkouts = { navController.navigate(Screen.Workouts.route) },
+                onNavigateToWorkouts = {
+                    if (!navController.popBackStack(Screen.Workouts.route, inclusive = false)) {
+                        navController.navigate(Screen.Workouts.route)
+                    }
+                },
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onBack = { navController.popBackStack() }
             )

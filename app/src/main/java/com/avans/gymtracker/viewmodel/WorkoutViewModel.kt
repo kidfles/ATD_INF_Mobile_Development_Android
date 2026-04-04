@@ -8,6 +8,7 @@ import com.avans.gymtracker.data.model.Exercise
 import com.avans.gymtracker.data.model.Workout
 import com.avans.gymtracker.data.model.WorkoutExercise
 import com.avans.gymtracker.data.repository.WorkoutRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +43,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _currentExercises = MutableStateFlow<List<WorkoutExercise>>(emptyList())
     val currentExercises: StateFlow<List<WorkoutExercise>> = _currentExercises.asStateFlow()
 
+    private var loadWorkoutJob: Job? = null
+
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
@@ -51,7 +54,8 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     // ── Workout laden ─────────────────────────────────────────────────────────
 
     fun loadWorkout(workoutId: Long) {
-        viewModelScope.launch {
+        loadWorkoutJob?.cancel()
+        loadWorkoutJob = viewModelScope.launch {
             _currentWorkout.value = repository.getWorkoutById(workoutId)
             repository.getExercisesForWorkout(workoutId).collect { exercises ->
                 _currentExercises.value = exercises.sortedBy { it.orderIndex }
@@ -71,8 +75,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         exercises: List<Exercise>,
         onSuccess: (Long) -> Unit
     ) {
+        if (_isSaving.value) return
+        _isSaving.value = true
         viewModelScope.launch {
-            _isSaving.value = true
             try {
                 val workout = Workout(name = name, description = description)
                 val workoutId = repository.insertWorkout(workout)
