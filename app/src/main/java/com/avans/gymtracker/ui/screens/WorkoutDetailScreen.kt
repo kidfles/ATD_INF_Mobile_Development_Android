@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -98,6 +99,33 @@ fun WorkoutDetailScreen(
             cameraLauncher.launch(photoUri!!)
         } else {
             showCameraPermissionDialog = true
+        }
+    }
+
+    // ── NOTIFICATION dangerous permission launcher (Android 13+) ─────────────
+    var pendingWorkoutName by remember { mutableStateOf("") }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            sendCompletionNotification(context, pendingWorkoutName)
+        }
+    }
+
+    fun sendNotificationWithPermission(workoutName: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                        == PackageManager.PERMISSION_GRANTED -> {
+                    sendCompletionNotification(context, workoutName)
+                }
+                else -> {
+                    pendingWorkoutName = workoutName
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            sendCompletionNotification(context, workoutName)
         }
     }
 
@@ -368,7 +396,7 @@ fun WorkoutDetailScreen(
             confirmButton = {
                 Button(onClick = {
                     workoutViewModel.markCompleted(workoutId)
-                    sendCompletionNotification(context, workout?.name ?: "")
+                    sendNotificationWithPermission(workout?.name ?: "")
                     showCompletionDialog = false
                 }) { Text("Voltooien 🎉") }
             },

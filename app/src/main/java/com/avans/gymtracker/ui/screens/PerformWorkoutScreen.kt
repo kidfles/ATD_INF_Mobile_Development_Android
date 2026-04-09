@@ -1,5 +1,10 @@
 package com.avans.gymtracker.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.avans.gymtracker.viewmodel.WorkoutViewModel
@@ -43,6 +49,35 @@ fun PerformWorkoutScreen(
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var isRunning by remember { mutableStateOf(true) }
     var showCompletionDialog by remember { mutableStateOf(false) }
+
+    var pendingWorkoutName by remember { mutableStateOf("") }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            sendCompletionNotification(context, pendingWorkoutName)
+        }
+        onFinished()
+    }
+
+    fun sendNotificationWithPermission(workoutName: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                        == PackageManager.PERMISSION_GRANTED -> {
+                    sendCompletionNotification(context, workoutName)
+                    onFinished()
+                }
+                else -> {
+                    pendingWorkoutName = workoutName
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            sendCompletionNotification(context, workoutName)
+            onFinished()
+        }
+    }
 
     // Timer — asynchroon, elke seconde
     LaunchedEffect(isRunning) {
@@ -252,8 +287,7 @@ fun PerformWorkoutScreen(
             confirmButton = {
                 Button(onClick = {
                     workoutViewModel.markCompleted(workoutId)
-                    sendCompletionNotification(context, workout?.name ?: "")
-                    onFinished()
+                    sendNotificationWithPermission(workout?.name ?: "")
                 }) {
                     Text("Afronden")
                 }
